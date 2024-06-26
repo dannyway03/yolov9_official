@@ -3,6 +3,7 @@ import random
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 import torch
 import torchvision.transforms as T
 import torchvision.transforms.functional as TF
@@ -393,3 +394,17 @@ class ToTensor:
         im = im.half() if self.half else im.float()  # uint8 to fp16/32
         im /= 255.0  # 0-255 to 0.0-1.0
         return im
+
+
+def fixed_cutout(im: npt.NDArray, prob: float | None, ratio: float = 0.60) -> npt.NDArray:
+    """
+    Fill specified fraction of the top of the image with black pixels. This fake "cutout" should
+    make the model pay special attention to other part of the image.
+
+    Note: This is for a specific use case in mind, and probably not a good augmentation to be
+    applied generally.
+    """
+    if prob is not None and random.random() < prob:
+        cut_height = int(im.shape[0] * ratio)
+        im[:cut_height, :, :] = 0
+    return im
