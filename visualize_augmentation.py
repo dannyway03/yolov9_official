@@ -8,12 +8,12 @@ import os
 import sys
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import matplotlib.pyplot as plt
 import yaml
 
 from utils.dataloaders import create_dataloader
-from utils.general import check_dataset, check_img_size, colorstr, LOGGER
+from utils.general import check_dataset, check_img_size, colorstr, LOGGER, init_seeds
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parent
@@ -69,6 +69,9 @@ def visualize_augmentation(train_loader, rows: int = 2, cols: int = 2, pages: st
 
 
 def main(opt: argparse.Namespace) -> None:
+    # Set seed
+    init_seeds(opt.seed, deterministic=True)
+
     # Check dataset
     data_dict = check_dataset(opt.data)
     train_path, val_path = data_dict['train'], data_dict['val']
@@ -120,6 +123,8 @@ def parse_opt() -> argparse.Namespace:
                         help='Number of columns of images to display')
     parser.add_argument('--pages', type=str, default='all',
                         help='Pages to display (all or specific page number)')
+    parser.add_argument('--seed', type=int, default=0,
+                        help='Seed to make augmentations reproducible')
 
     return parser.parse_args()
 
