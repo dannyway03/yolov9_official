@@ -141,7 +141,7 @@ def export_onnx(model, im, file, opset, dynamic, simplify, prefix=colorstr('ONNX
     
 
 @try_export
-def export_onnx_end2end(model, im, file, simplify, topk_all, iou_thres, conf_thres, device, labels, prefix=colorstr('ONNX END2END:')):
+def export_onnx_end2end(model, im, file, opset, simplify, topk_all, iou_thres, conf_thres, device, labels, prefix=colorstr('ONNX END2END:')):
     # YOLO ONNX export
     check_requirements('onnx')
     import onnx
@@ -149,31 +149,30 @@ def export_onnx_end2end(model, im, file, simplify, topk_all, iou_thres, conf_thr
     f = os.path.splitext(file)[0] + "-end2end.onnx"
     batch_size = 'batch'
 
-    dynamic_axes = {'images': {0 : 'batch', 2: 'height', 3:'width'}, } # variable length axes
+    # variable length axes
+    # dynamic_axes = {'images': {0 : 'batch', 2: 'height', 3:'width'}, }
 
-    output_axes = {
-                    'num_dets': {0: 'batch'},
-                    'det_boxes': {0: 'batch'},
-                    'det_scores': {0: 'batch'},
-                    'det_classes': {0: 'batch'},
-                }
+    # variable length batch
+    dynamic_axes = {'images' : {0 : 'batch_size'}}
+    output_axes = {'output' : {0 : 'batch_size'}}
     dynamic_axes.update(output_axes)
-    model = End2End(model, topk_all, iou_thres, conf_thres, None ,device, labels)
-
-    output_names = ['num_dets', 'det_boxes', 'det_scores', 'det_classes']
+    model = End2End(model, topk_all, iou_thres, conf_thres, 640 ,device, labels)
+    input_names = ['images']
+    output_names = ['output']
     shapes = [ batch_size, 1,  batch_size,  topk_all, 4,
                batch_size,  topk_all,  batch_size,  topk_all]
 
-    torch.onnx.export(model, 
+    torch.onnx.export(model,
                           im, 
                           f, 
                           verbose=False, 
                           export_params=True,       # store the trained parameter weights inside the model file
-                          opset_version=12, 
-                          do_constant_folding=True, # whether to execute constant folding for optimization
-                          input_names=['images'],
+                          opset_version=opset,
+                          do_constant_folding=True,
+                          input_names=input_names,
                           output_names=output_names,
-                          dynamic_axes=dynamic_axes)
+                          dynamic_axes=dynamic_axes,
+                      )
 
     # Checks
     model_onnx = onnx.load(f)  # load onnx model
@@ -581,7 +580,7 @@ def run(
     if onnx_end2end:
         if isinstance(model, DetectionModel):
             labels = model.names
-            f[2], _ = export_onnx_end2end(model, im, file, simplify, topk_all, iou_thres, conf_thres, device, len(labels))
+            f[2], _ = export_onnx_end2end(model, im, file, opset, simplify, topk_all, iou_thres, conf_thres, device, len(labels))
         else:
             raise RuntimeError("The model is not a DetectionModel.")
     if xml:  # OpenVINO
