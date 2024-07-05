@@ -141,7 +141,7 @@ def export_onnx(model, im, file, opset, dynamic, simplify, prefix=colorstr('ONNX
     
 
 @try_export
-def export_onnx_end2end(model, im, file, opset, simplify, topk_all, iou_thres, conf_thres, device, labels, max_wh, prefix=colorstr('ONNX END2END:')):
+def export_onnx_end2end(model, im, file, opset, simplify, topk_all, iou_thres, conf_thres, device, labels, max_wh, dynamic, prefix=colorstr('ONNX END2END:')):
     # YOLO ONNX export
     check_requirements('onnx')
     import onnx
@@ -153,9 +153,12 @@ def export_onnx_end2end(model, im, file, opset, simplify, topk_all, iou_thres, c
     # dynamic_axes = {'images': {0 : 'batch', 2: 'height', 3:'width'}, }
 
     # variable length batch
-    dynamic_axes = {'images' : {0 : 'batch_size'}}
-    output_axes = {'output' : {0 : 'batch_size'}}
-    dynamic_axes.update(output_axes)
+    if dynamic:
+        dynamic_axes = {'images' : {0 : 'batch_size'}}
+        output_axes = {'output' : {0 : 'batch_size'}}
+        dynamic_axes.update(output_axes)
+    else:
+        dynamic_axes = None
     model = End2End(model, topk_all, iou_thres, conf_thres, max_wh,device, labels)
     input_names = ['images']
     output_names = ['output']
@@ -592,6 +595,7 @@ def run(
                 device=device,
                 labels=len(labels),
                 max_wh=imgsz[0],
+                dynamic=dynamic,
             )
         else:
             raise RuntimeError("The model is not a DetectionModel.")
@@ -679,7 +683,7 @@ def parse_opt():
 
     if 'onnx_end2end' in opt.include:  
         opt.simplify = True
-        opt.dynamic = True
+        # opt.dynamic = True
         opt.inplace = True
         opt.half = False
 
