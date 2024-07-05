@@ -141,7 +141,7 @@ def export_onnx(model, im, file, opset, dynamic, simplify, prefix=colorstr('ONNX
     
 
 @try_export
-def export_onnx_end2end(model, im, file, opset, simplify, topk_all, iou_thres, conf_thres, device, labels, prefix=colorstr('ONNX END2END:')):
+def export_onnx_end2end(model, im, file, opset, simplify, topk_all, iou_thres, conf_thres, device, labels, max_wh, prefix=colorstr('ONNX END2END:')):
     # YOLO ONNX export
     check_requirements('onnx')
     import onnx
@@ -156,7 +156,7 @@ def export_onnx_end2end(model, im, file, opset, simplify, topk_all, iou_thres, c
     dynamic_axes = {'images' : {0 : 'batch_size'}}
     output_axes = {'output' : {0 : 'batch_size'}}
     dynamic_axes.update(output_axes)
-    model = End2End(model, topk_all, iou_thres, conf_thres, 640 ,device, labels)
+    model = End2End(model, topk_all, iou_thres, conf_thres, max_wh,device, labels)
     input_names = ['images']
     output_names = ['output']
     shapes = [ batch_size, 1,  batch_size,  topk_all, 4,
@@ -580,7 +580,19 @@ def run(
     if onnx_end2end:
         if isinstance(model, DetectionModel):
             labels = model.names
-            f[2], _ = export_onnx_end2end(model, im, file, opset, simplify, topk_all, iou_thres, conf_thres, device, len(labels))
+            f[2], _ = export_onnx_end2end(
+                model=model,
+                im=im,
+                file=file,
+                opset=opset,
+                simplify=simplify,
+                topk_all=topk_all,
+                iou_thres=iou_thres,
+                conf_thres=conf_thres,
+                device=device,
+                labels=len(labels),
+                max_wh=imgsz[0],
+            )
         else:
             raise RuntimeError("The model is not a DetectionModel.")
     if xml:  # OpenVINO
