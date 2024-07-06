@@ -26,42 +26,26 @@ transform:
     tile_grid_size:
     - 8
     - 8
-  - __class_fullname__: Blur
-    blur_limit:
-    - 3
-    - 7
-    p: 0.01
-  - __class_fullname__: MotionBlur
-    allow_shifted: true
-    blur_limit:
-    - 3
-    - 7
-    p: 0.01
-  - __class_fullname__: GaussNoise
-    mean: 0.0
-    noise_scale_factor: 1.0
-    p: 0.01
-    per_channel: true
-    var_limit:
-    - 10.0
-    - 50.0
-  - __class_fullname__: ISONoise
-    color_shift:
-    - 0.01
-    - 0.05
-    intensity:
-    - 0.1
-    - 0.5
-    p: 0.01
-  - __class_fullname__: MultiplicativeNoise
-    elementwise: false
-    multiplier:
-    - 0.5
-    - 0.55
-    p: 0.01
-  - __class_fullname__: ImageCompression
-    compression_type: 0
-    p: 0.01
-    quality_range:
-    - 70
-    - 100
+  - __class_fullname__: OneOf
+    p: 1.0
+    transforms:
+    - __class_fullname__: GaussNoise
+      mean: 0.0
+      noise_scale_factor: 1.0
+      p: 0.01
+      per_channel: true
+      var_limit:
+      - 10.0
+      - 50.0
+    - __class_fullname__: MultiplicativeNoise
+      elementwise: false
+      multiplier:
+      - 0.5
+      - 0.6
+      p: 0.01
+    - __class_fullname__: ImageCompression
+      compression_type: 0
+      p: 0.01
+      quality_range:
+      - 75
+      - 100
