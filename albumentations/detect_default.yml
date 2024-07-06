@@ -1,0 +1,59 @@
+# Default augmentation used in detection task converted to YAML.
+__version__: 1.4.10
+transform:
+  __class_fullname__: Compose
+  additional_targets: {}
+  bbox_params:
+    check_each_transform: true
+    clip: false
+    format: yolo
+    label_fields:
+    - class_labels
+    min_area: 0.0
+    min_height: 0.0
+    min_visibility: 0.0
+    min_width: 0.0
+  is_check_shapes: true
+  keypoint_params: null
+  p: 1.0
+  transforms:
+  - __class_fullname__: Blur
+    blur_limit:
+    - 3
+    - 7
+    p: 0.01
+  - __class_fullname__: MedianBlur
+    blur_limit:
+    - 3
+    - 7
+    p: 0.01
+  - __class_fullname__: ToGray
+    p: 0.01
+  - __class_fullname__: CLAHE
+    clip_limit:
+    - 1
+    - 4.0
+    p: 0.01
+    tile_grid_size:
+    - 8
+    - 8
+  - __class_fullname__: RandomBrightnessContrast
+    brightness_by_max: true
+    brightness_limit:
+    - -0.2
+    - 0.2
+    contrast_limit:
+    - -0.2
+    - 0.2
+    p: 0.0
+  - __class_fullname__: RandomGamma
+    gamma_limit:
+    - 80
+    - 120
+    p: 0.0
+  - __class_fullname__: ImageCompression
+    compression_type: 0
+    p: 0.0
+    quality_range:
+    - 75
+    - 100
