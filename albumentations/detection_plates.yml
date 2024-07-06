@@ -1,0 +1,67 @@
+__version__: 1.4.10
+transform:
+  __class_fullname__: Compose
+  additional_targets: {}
+  bbox_params:
+    check_each_transform: true
+    clip: false
+    format: yolo
+    label_fields:
+    - class_labels
+    min_area: 0.0
+    min_height: 0.0
+    min_visibility: 0.0
+    min_width: 0.0
+  is_check_shapes: true
+  keypoint_params: null
+  p: 1.0
+  transforms:
+  - __class_fullname__: ToGray
+    p: 0.01
+  - __class_fullname__: CLAHE
+    clip_limit:
+    - 1
+    - 4.0
+    p: 0.01
+    tile_grid_size:
+    - 8
+    - 8
+  - __class_fullname__: Blur
+    blur_limit:
+    - 3
+    - 7
+    p: 0.01
+  - __class_fullname__: MotionBlur
+    allow_shifted: true
+    blur_limit:
+    - 3
+    - 7
+    p: 0.01
+  - __class_fullname__: GaussNoise
+    mean: 0.0
+    noise_scale_factor: 1.0
+    p: 0.01
+    per_channel: true
+    var_limit:
+    - 10.0
+    - 50.0
+  - __class_fullname__: ISONoise
+    color_shift:
+    - 0.01
+    - 0.05
+    intensity:
+    - 0.1
+    - 0.5
+    p: 0.01
+  - __class_fullname__: MultiplicativeNoise
+    elementwise: false
+    multiplier:
+    - 0.5
+    - 0.55
+    p: 0.01
+  - __class_fullname__: ImageCompression
+    compression_type: 0
+    p: 0.01
+    quality_range:
+    - 70
+    - 100
