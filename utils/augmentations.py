@@ -32,10 +32,12 @@ class Albumentations:
                 augmentation_pipeline = ALBUMENTATIONS_PATH / "detect_default.yml"
             else:
                 augmentation_pipeline = ALBUMENTATIONS_PATH / pipeline_name
-            assert (
-                augmentation_pipeline.is_file(),
-                f"{augmentation_pipeline} does not exist, should be just the name of the YAML file"
-            )
+            if not augmentation_pipeline.is_file():
+                raise FileNotFoundError(
+                    f"{augmentation_pipeline.name} does not exist! "
+                    "Please provide only the name of the YAML file (relative to"
+                    f" {augmentation_pipeline.parent})"
+                )
             self.transform = A.load(augmentation_pipeline, data_format='yaml')
             LOGGER.info(prefix + ', '.join(f'{x}'.replace('always_apply=False, ', '') for x in self.transform if x.p))
         except ImportError:  # package not installed, skip
