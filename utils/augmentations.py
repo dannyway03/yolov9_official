@@ -29,7 +29,7 @@ class Albumentations:
             check_version(A.__version__, '1.0.3', hard=True)  # version requirement
 
             if pipeline_name is None:
-                augmentation_pipeline = ALBUMENTATIONS_PATH / "detect_default.yml"
+                augmentation_pipeline = ALBUMENTATIONS_PATH / "detection_default.yml"
             else:
                 augmentation_pipeline = ALBUMENTATIONS_PATH / pipeline_name
             if not augmentation_pipeline.is_file():
