@@ -17,19 +17,26 @@ IMAGENET_STD = 0.229, 0.224, 0.225  # RGB standard deviation
 
 
 ALBUMENTATIONS_PATH = Path(__file__).resolve().parent.parent / "albumentations"
-DEFAULT_ALBUMENTATIONS = ALBUMENTATIONS_PATH / "detect_default.yml"
 
 
 class Albumentations:
     # YOLOv5 Albumentations class (optional, only used if package is installed)
-    def __init__(self, size=640):
+    def __init__(self, pipeline_name: str = None):
         self.transform = None
         prefix = colorstr('albumentations: ')
         try:
             import albumentations as A
             check_version(A.__version__, '1.0.3', hard=True)  # version requirement
 
-            self.transform = A.load(DEFAULT_ALBUMENTATIONS, data_format='yaml')
+            if pipeline_name is None:
+                augmentation_pipeline = ALBUMENTATIONS_PATH / "detect_default.yml"
+            else:
+                augmentation_pipeline = ALBUMENTATIONS_PATH / pipeline_name
+            assert (
+                augmentation_pipeline.is_file(),
+                f"{augmentation_pipeline} does not exist, should be just the name of the YAML file"
+            )
+            self.transform = A.load(augmentation_pipeline, data_format='yaml')
             LOGGER.info(prefix + ', '.join(f'{x}'.replace('always_apply=False, ', '') for x in self.transform if x.p))
         except ImportError:  # package not installed, skip
             pass
