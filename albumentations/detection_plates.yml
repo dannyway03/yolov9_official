@@ -26,13 +26,18 @@ transform:
     tile_grid_size:
     - 8
     - 8
+  - __class_fullname__: RandomGamma
+    gamma_limit:
+    - 80
+    - 120
+    p: 0.01
   - __class_fullname__: OneOf
-    p: 1.0
+    p: 0.3
     transforms:
     - __class_fullname__: GaussNoise
       mean: 0.0
       noise_scale_factor: 1.0
-      p: 0.01
+      p: 0.1
       per_channel: true
       var_limit:
       - 10.0
@@ -42,10 +47,10 @@ transform:
       multiplier:
       - 0.5
       - 0.6
-      p: 0.01
+      p: 0.1
     - __class_fullname__: ImageCompression
       compression_type: 0
-      p: 0.01
+      p: 0.1
       quality_range:
       - 75
       - 100
