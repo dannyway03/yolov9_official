@@ -4,7 +4,7 @@
 nc: 80  # number of classes
 depth_multiple: 0.5  # model depth multiple (reduced)
 width_multiple: 0.5  # layer channel multiple (reduced)
-activation: nn.LeakyReLU(0.1)
+#activation: nn.LeakyReLU(0.1)
 #activation: nn.ReLU()
 
 # anchors
