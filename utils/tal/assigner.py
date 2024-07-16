@@ -49,7 +49,7 @@ def select_highest_overlaps(mask_pos, overlaps, n_max_boxes):
 
 
 class TaskAlignedAssigner(nn.Module):
-    def __init__(self, topk=13, num_classes=80, alpha=1.0, beta=6.0, eps=1e-9):
+    def __init__(self, topk=13, num_classes=80, alpha=1.0, beta=6.0, eps=1e-9, bbox_loss: str = "CIoU"):
         super().__init__()
         self.topk = topk
         self.num_classes = num_classes
@@ -57,6 +57,10 @@ class TaskAlignedAssigner(nn.Module):
         self.alpha = alpha
         self.beta = beta
         self.eps = eps
+        bbox_iou_params = {"GIoU": False, "DIoU": False, "CIoU": False, "MDPIoU": False}
+        assert bbox_loss in bbox_iou_params, f"{bbox_loss} not supported, use any of {list(bbox_iou_params)}"
+        bbox_iou_params[bbox_loss] = True
+        self.bbox_iou_params = bbox_iou_params
 
     @torch.no_grad()
     def forward(self, pd_scores, pd_bboxes, anc_points, gt_labels, gt_bboxes, mask_gt):
@@ -126,7 +130,7 @@ class TaskAlignedAssigner(nn.Module):
         # get the scores of each grid for each gt cls
         bbox_scores = pd_scores[ind[0], :, ind[1]]  # b, max_num_obj, h*w
 
-        overlaps = bbox_iou(gt_bboxes.unsqueeze(2), pd_bboxes.unsqueeze(1), xywh=False, CIoU=True).squeeze(3).clamp(0)
+        overlaps = bbox_iou(gt_bboxes.unsqueeze(2), pd_bboxes.unsqueeze(1), xywh=False, **self.bbox_iou_params).squeeze(3).clamp(0)
         align_metric = bbox_scores.pow(self.alpha) * overlaps.pow(self.beta)
         return align_metric, overlaps
 
