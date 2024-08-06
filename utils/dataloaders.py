@@ -664,7 +664,8 @@ class LoadImagesAndLabels(Dataset):
         else:
             # Load image
             img, (h0, w0), (h, w) = self.load_image(index)
-            img = fixed_cutout(im=img, prob=hyp.get("fixed_cutout"), ratio=0.5)
+            if hyp is not None:
+                img = fixed_cutout(im=img, prob=hyp.get("fixed_cutout"), ratio=0.5)
 
             # Letterbox
             shape = self.batch_shapes[self.batch[index]] if self.rect else self.img_size  # final letterboxed shape
@@ -755,7 +756,8 @@ class LoadImagesAndLabels(Dataset):
         for i, index in enumerate(indices):
             # Load image
             img, _, (h, w) = self.load_image(index)
-            img = fixed_cutout(im=img, prob=self.hyp.get("fixed_cutout"), ratio=0.5)
+            if self.hyp is not None:
+                img = fixed_cutout(im=img, prob=self.hyp.get("fixed_cutout"), ratio=0.5)
 
             # place img in img4
             if i == 0:  # top left
