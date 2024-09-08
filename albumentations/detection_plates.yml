@@ -16,28 +16,32 @@ transform:
   keypoint_params: null
   p: 1.0
   transforms:
-  - __class_fullname__: ToGray
-    p: 0.01
-  - __class_fullname__: CLAHE
-    clip_limit:
-    - 1
-    - 4.0
-    p: 0.01
-    tile_grid_size:
-    - 8
-    - 8
-  - __class_fullname__: RandomGamma
-    gamma_limit:
-    - 80
-    - 120
-    p: 0.01
   - __class_fullname__: OneOf
-    p: 0.3
+    p: 0.01
+    transforms:
+    - __class_fullname__: Blur
+      blur_limit:
+      - 3
+      - 7
+      p: 0.01
+    - __class_fullname__: MedianBlur
+      blur_limit:
+      - 3
+      - 7
+      p: 0.01
+    - __class_fullname__: MotionBlur
+      allow_shifted: true
+      blur_limit:
+      - 3
+      - 7
+      p: 0.01
+  - __class_fullname__: OneOf
+    p: 0.03
     transforms:
     - __class_fullname__: GaussNoise
       mean: 0.0
       noise_scale_factor: 1.0
-      p: 0.1
+      p: 0.01
       per_channel: true
       var_limit:
       - 10.0
@@ -46,11 +50,42 @@ transform:
       elementwise: false
       multiplier:
       - 0.5
-      - 0.6
-      p: 0.1
+      - 0.8
+      p: 0.01
     - __class_fullname__: ImageCompression
       compression_type: 0
-      p: 0.1
+      p: 0.01
       quality_range:
       - 75
       - 100
+  - __class_fullname__: OneOf
+    p: 0.03
+    transforms:
+    - __class_fullname__: ToGray
+      p: 0.01
+    - __class_fullname__: CLAHE
+      clip_limit:
+      - 1
+      - 4.0
+      p: 0.01
+      tile_grid_size:
+      - 8
+      - 8
+    - __class_fullname__: RandomGamma
+      gamma_limit:
+      - 80
+      - 120
+      p: 0.01
+  - __class_fullname__: CoarseDropout
+    fill_value: 0.0
+    hole_height_range:
+    - 15
+    - 15
+    hole_width_range:
+    - 15
+    - 15
+    mask_fill_value: null
+    num_holes_range:
+    - 8
+    - 8
+    p: 0.01
