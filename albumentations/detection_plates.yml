@@ -17,7 +17,7 @@ transform:
   p: 1.0
   transforms:
   - __class_fullname__: OneOf
-    p: 0.01
+    p: 0.1
     transforms:
     - __class_fullname__: Blur
       blur_limit:
@@ -34,9 +34,9 @@ transform:
       blur_limit:
       - 3
       - 7
-      p: 0.01
+      p: 0.02
   - __class_fullname__: OneOf
-    p: 0.03
+    p: 0.1
     transforms:
     - __class_fullname__: GaussNoise
       mean: 0.0
@@ -59,7 +59,7 @@ transform:
       - 75
       - 100
   - __class_fullname__: OneOf
-    p: 0.03
+    p: 0.15
     transforms:
     - __class_fullname__: ToGray
       p: 0.01
@@ -88,4 +88,4 @@ transform:
     num_holes_range:
     - 8
     - 8
-    p: 0.01
+    p: 0.1
