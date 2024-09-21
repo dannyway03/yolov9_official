@@ -95,12 +95,12 @@ def export_onnx(model, im, file, opset, dynamic, simplify, prefix=colorstr('ONNX
 
     output_names = ['output0', 'output1'] if isinstance(model, SegmentationModel) else ['output0']
     if dynamic:
-        dynamic = {'images': {0: 'batch', 2: 'height', 3: 'width'}}  # shape(1,3,640,640)
+        dynamic = {'images': {0: 'batch'}}  # shape(1,3,640,640)
         if isinstance(model, SegmentationModel):
             dynamic['output0'] = {0: 'batch', 1: 'anchors'}  # shape(1,25200,85)
             dynamic['output1'] = {0: 'batch', 2: 'mask_height', 3: 'mask_width'}  # shape(1,32,160,160)
         elif isinstance(model, DetectionModel):
-            dynamic['output0'] = {0: 'batch', 1: 'anchors'}  # shape(1,25200,85)
+            dynamic['output0'] = {0: 'batch'}  # shape(1,25200,85)
 
     torch.onnx.export(
         model.cpu() if dynamic else model,  # --dynamic only compatible with cpu
@@ -149,8 +149,25 @@ def export_onnx_end2end(model, im, file, opset, simplify, topk_all, iou_thres, c
     f = os.path.splitext(file)[0] + "-end2end.onnx"
     batch_size = 'batch'
 
-    # variable length axes
-    # dynamic_axes = {'images': {0 : 'batch', 2: 'height', 3:'width'}, }
+    # Original logic
+
+    # if dynamic:
+    #     dynamic_axes = {'images': {0: 'batch', 2: 'height', 3: 'width'}}  # shape(1,3,640,640)
+    #     if isinstance(model, SegmentationModel):
+    #         dynamic_axes['output0'] = {0: 'batch', 1: 'anchors'}  # shape(1,25200,85)
+    #         dynamic_axes['output1'] = {0: 'batch', 2: 'mask_height', 3: 'mask_width'}  # shape(1,32,160,160)
+    #     elif isinstance(model, DetectionModel):
+    #         dynamic_axes['output0'] = {0: 'batch', 1: 'anchors'}  # shape(1,25200,85)
+    # else:
+    #     dynamic_axes = None
+    # model = End2End(model, topk_all, iou_thres, conf_thres, max_wh,device, labels)
+    # input_names = ['images']
+    # output_names = ["output0", "output1"] if isinstance(model, SegmentationModel) else ["output0"]
+    # shapes = [ batch_size, 1,  batch_size,  topk_all, 4,
+    #            batch_size,  topk_all,  batch_size,  topk_all]
+
+    # This has been modified so dynamic only means dynamic batch as there are currently some errors
+    # with the exported model when setting H and W dynamic
 
     # variable length batch
     if dynamic:
@@ -161,15 +178,15 @@ def export_onnx_end2end(model, im, file, opset, simplify, topk_all, iou_thres, c
         dynamic_axes = None
     model = End2End(model, topk_all, iou_thres, conf_thres, max_wh,device, labels)
     input_names = ['images']
-    output_names = ['output']
+    output_names = ['output0']
     shapes = [ batch_size, 1,  batch_size,  topk_all, 4,
                batch_size,  topk_all,  batch_size,  topk_all]
 
-    torch.onnx.export(model,
-                          im, 
+    torch.onnx.export(model.cpu() if dynamic else model,
+                          im.cpu() if dynamic else im,
                           f, 
                           verbose=False, 
-                          export_params=True,       # store the trained parameter weights inside the model file
+                          export_params=True,
                           opset_version=opset,
                           do_constant_folding=True,
                           input_names=input_names,
@@ -651,7 +668,7 @@ def run(
     return f  # return list of exported files/dirs
 
 
-def parse_opt():
+def parse_opt(weights_path: str):
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', type=str, default=ROOT / 'data/coco.yaml', help='dataset.yaml path')
     parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'yolo.pt', help='model.pt path(s)')
