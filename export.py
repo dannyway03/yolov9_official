@@ -95,12 +95,12 @@ def export_onnx(model, im, file, opset, dynamic, simplify, prefix=colorstr('ONNX
 
     output_names = ['output0', 'output1'] if isinstance(model, SegmentationModel) else ['output0']
     if dynamic:
-        dynamic = {'images': {0: 'batch', 2: 'height', 3: 'width'}}  # shape(1,3,640,640)
+        dynamic = {'images': {0: 'batch'}}  # shape(1,3,640,640)
         if isinstance(model, SegmentationModel):
             dynamic['output0'] = {0: 'batch', 1: 'anchors'}  # shape(1,25200,85)
             dynamic['output1'] = {0: 'batch', 2: 'mask_height', 3: 'mask_width'}  # shape(1,32,160,160)
         elif isinstance(model, DetectionModel):
-            dynamic['output0'] = {0: 'batch', 1: 'anchors'}  # shape(1,25200,85)
+            dynamic['output0'] = {0: 'batch'}  # shape(1,25200,85)
 
     torch.onnx.export(
         model.cpu() if dynamic else model,  # --dynamic only compatible with cpu
@@ -153,7 +153,7 @@ def export_onnx(model, im, file, opset, dynamic, simplify, prefix=colorstr('ONNX
     
 
 @try_export
-def export_onnx_end2end(model, im, file, simplify, topk_all, iou_thres, conf_thres, device, labels, prefix=colorstr('ONNX END2END:')):
+def export_onnx_end2end(model, im, file, opset, simplify, topk_all, iou_thres, conf_thres, device, labels, max_wh, dynamic, prefix=colorstr('ONNX END2END:')):
     # YOLO ONNX export
     check_requirements('onnx')
     import onnx
@@ -161,31 +161,50 @@ def export_onnx_end2end(model, im, file, simplify, topk_all, iou_thres, conf_thr
     f = os.path.splitext(file)[0] + "-end2end.onnx"
     batch_size = 'batch'
 
-    dynamic_axes = {'images': {0 : 'batch', 2: 'height', 3:'width'}, } # variable length axes
+    # Original logic
 
-    output_axes = {
-                    'num_dets': {0: 'batch'},
-                    'det_boxes': {0: 'batch'},
-                    'det_scores': {0: 'batch'},
-                    'det_classes': {0: 'batch'},
-                }
-    dynamic_axes.update(output_axes)
-    model = End2End(model, topk_all, iou_thres, conf_thres, None ,device, labels)
+    # if dynamic:
+    #     dynamic_axes = {'images': {0: 'batch', 2: 'height', 3: 'width'}}  # shape(1,3,640,640)
+    #     if isinstance(model, SegmentationModel):
+    #         dynamic_axes['output0'] = {0: 'batch', 1: 'anchors'}  # shape(1,25200,85)
+    #         dynamic_axes['output1'] = {0: 'batch', 2: 'mask_height', 3: 'mask_width'}  # shape(1,32,160,160)
+    #     elif isinstance(model, DetectionModel):
+    #         dynamic_axes['output0'] = {0: 'batch', 1: 'anchors'}  # shape(1,25200,85)
+    # else:
+    #     dynamic_axes = None
+    # model = End2End(model, topk_all, iou_thres, conf_thres, max_wh,device, labels)
+    # input_names = ['images']
+    # output_names = ["output0", "output1"] if isinstance(model, SegmentationModel) else ["output0"]
+    # shapes = [ batch_size, 1,  batch_size,  topk_all, 4,
+    #            batch_size,  topk_all,  batch_size,  topk_all]
 
-    output_names = ['num_dets', 'det_boxes', 'det_scores', 'det_classes']
+    # This has been modified so dynamic only means dynamic batch as there are currently some errors
+    # with the exported model when setting H and W dynamic
+
+    # variable length batch
+    if dynamic:
+        dynamic_axes = {'images' : {0 : 'batch_size'}}
+        output_axes = {'output' : {0 : 'batch_size'}}
+        dynamic_axes.update(output_axes)
+    else:
+        dynamic_axes = None
+    model = End2End(model, topk_all, iou_thres, conf_thres, max_wh,device, labels)
+    input_names = ['images']
+    output_names = ['output0']
     shapes = [ batch_size, 1,  batch_size,  topk_all, 4,
                batch_size,  topk_all,  batch_size,  topk_all]
 
-    torch.onnx.export(model, 
-                          im, 
+    torch.onnx.export(model.cpu() if dynamic else model,
+                          im.cpu() if dynamic else im,
                           f, 
                           verbose=False, 
-                          export_params=True,       # store the trained parameter weights inside the model file
-                          opset_version=12, 
-                          do_constant_folding=True, # whether to execute constant folding for optimization
-                          input_names=['images'],
+                          export_params=True,
+                          opset_version=opset,
+                          do_constant_folding=True,
+                          input_names=input_names,
                           output_names=output_names,
-                          dynamic_axes=dynamic_axes)
+                          dynamic_axes=dynamic_axes,
+                      )
 
     # Checks
     model_onnx = onnx.load(f)  # load onnx model
@@ -593,7 +612,20 @@ def run(
     if onnx_end2end:
         if isinstance(model, DetectionModel):
             labels = model.names
-            f[2], _ = export_onnx_end2end(model, im, file, simplify, topk_all, iou_thres, conf_thres, device, len(labels))
+            f[2], _ = export_onnx_end2end(
+                model=model,
+                im=im,
+                file=file,
+                opset=opset,
+                simplify=simplify,
+                topk_all=topk_all,
+                iou_thres=iou_thres,
+                conf_thres=conf_thres,
+                device=device,
+                labels=len(labels),
+                max_wh=imgsz[0],
+                dynamic=dynamic,
+            )
         else:
             raise RuntimeError("The model is not a DetectionModel.")
     if xml:  # OpenVINO
@@ -648,7 +680,7 @@ def run(
     return f  # return list of exported files/dirs
 
 
-def parse_opt():
+def parse_opt(weights_path: str):
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', type=str, default=ROOT / 'data/coco.yaml', help='dataset.yaml path')
     parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'weights/yolov9-t-converted.pt', help='model.pt path(s)')
@@ -680,7 +712,7 @@ def parse_opt():
 
     if 'onnx_end2end' in opt.include:  
         opt.simplify = True
-        opt.dynamic = True
+        # opt.dynamic = True
         opt.inplace = True
         opt.half = False
 
