@@ -289,6 +289,9 @@ def bbox_iou(box1, box2, xywh=True, GIoU=False, DIoU=False, CIoU=False, MDPIoU=F
             return iou - rho2 / c2  # DIoU
         c_area = cw * ch + eps  # convex area
         return iou - (c_area - union) / c_area  # GIoU https://arxiv.org/pdf/1902.09630.pdf
+    # MDPIoU
+    # https://www.mdpi.com/2075-1702/12/3/149
+    # https://arxiv.org/pdf/2307.07662
     elif MDPIoU:
         d1 = (b2_x1 - b1_x1) ** 2 + (b2_y1 - b1_y1) ** 2
         d2 = (b2_x2 - b1_x2) ** 2 + (b2_y2 - b1_y2) ** 2

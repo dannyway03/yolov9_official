@@ -1,4 +1,5 @@
 import math
+import random
 
 import numpy as np
 import torch
@@ -170,6 +171,7 @@ class ONNX_ORT(nn.Module):
         bboxes @= self.convert_matrix
         max_score, category_id = scores.max(2, keepdim=True)
         dis = category_id.float() * self.max_wh
+        bboxes = bboxes.squeeze(2)
         nmsbox = bboxes + dis
         max_score_tp = max_score.transpose(1, 2).contiguous()
         selected_indices = ORT_NMS.apply(nmsbox, max_score_tp, self.max_obj, self.iou_threshold, self.score_threshold)

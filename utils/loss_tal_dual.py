@@ -134,11 +134,13 @@ class ComputeLoss:
         self.assigner = TaskAlignedAssigner(topk=int(os.getenv('YOLOM', 10)),
                                             num_classes=self.nc,
                                             alpha=float(os.getenv('YOLOA', 0.5)),
-                                            beta=float(os.getenv('YOLOB', 6.0)))
+                                            beta=float(os.getenv('YOLOB', 6.0)),
+                                            bbox_loss=h.get("bbox_loss_fn", "CIoU"))
         self.assigner2 = TaskAlignedAssigner(topk=int(os.getenv('YOLOM', 10)),
                                             num_classes=self.nc,
                                             alpha=float(os.getenv('YOLOA', 0.5)),
-                                            beta=float(os.getenv('YOLOB', 6.0)))
+                                            beta=float(os.getenv('YOLOB', 6.0)),
+                                            bbox_loss=h.get("bbox_loss_fn", "CIoU"))
         self.bbox_loss = BboxLoss(m.reg_max - 1, use_dfl=use_dfl).to(device)
         self.bbox_loss2 = BboxLoss(m.reg_max - 1, use_dfl=use_dfl).to(device)
         self.proj = torch.arange(m.reg_max).float().to(device)  # / 120.0

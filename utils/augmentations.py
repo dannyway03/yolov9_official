@@ -1,8 +1,10 @@
 import math
+from pathlib import Path
 import random
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 import torch
 import torchvision.transforms as T
 import torchvision.transforms.functional as TF
@@ -14,27 +16,30 @@ IMAGENET_MEAN = 0.485, 0.456, 0.406  # RGB mean
 IMAGENET_STD = 0.229, 0.224, 0.225  # RGB standard deviation
 
 
+ALBUMENTATIONS_PATH = Path(__file__).resolve().parent.parent / "albumentations"
+
+
 class Albumentations:
     # YOLOv5 Albumentations class (optional, only used if package is installed)
-    def __init__(self, size=640):
+    def __init__(self, pipeline_name: str = None):
         self.transform = None
         prefix = colorstr('albumentations: ')
         try:
             import albumentations as A
             check_version(A.__version__, '1.0.3', hard=True)  # version requirement
 
-            T = [
-                A.RandomResizedCrop(height=size, width=size, scale=(0.8, 1.0), ratio=(0.9, 1.11), p=0.0),
-                A.Blur(p=0.01),
-                A.MedianBlur(p=0.01),
-                A.ToGray(p=0.01),
-                A.CLAHE(p=0.01),
-                A.RandomBrightnessContrast(p=0.0),
-                A.RandomGamma(p=0.0),
-                A.ImageCompression(quality_lower=75, p=0.0)]  # transforms
-            self.transform = A.Compose(T, bbox_params=A.BboxParams(format='yolo', label_fields=['class_labels']))
-
-            LOGGER.info(prefix + ', '.join(f'{x}'.replace('always_apply=False, ', '') for x in T if x.p))
+            if pipeline_name is None:
+                augmentation_pipeline = ALBUMENTATIONS_PATH / "detection_default.yml"
+            else:
+                augmentation_pipeline = ALBUMENTATIONS_PATH / pipeline_name
+            if not augmentation_pipeline.is_file():
+                raise FileNotFoundError(
+                    f"{augmentation_pipeline.name} does not exist! "
+                    "Please provide only the name of the YAML file (relative to"
+                    f" {augmentation_pipeline.parent})"
+                )
+            self.transform = A.load(augmentation_pipeline, data_format='yaml')
+            LOGGER.info(prefix + ', '.join(f'{x}'.replace('always_apply=False, ', '') for x in self.transform if x.p))
         except ImportError:  # package not installed, skip
             pass
         except Exception as e:
@@ -393,3 +398,17 @@ class ToTensor:
         im = im.half() if self.half else im.float()  # uint8 to fp16/32
         im /= 255.0  # 0-255 to 0.0-1.0
         return im
+
+
+def fixed_cutout(im: npt.NDArray, prob: float | None, ratio: float = 0.60) -> npt.NDArray:
+    """
+    Fill specified fraction of the top of the image with black pixels. This fake "cutout" should
+    make the model pay special attention to other part of the image.
+
+    Note: This is for a specific use case in mind, and probably not a good augmentation to be
+    applied generally.
+    """
+    if prob is not None and random.random() < prob:
+        cut_height = int(im.shape[0] * ratio)
+        im[:cut_height, :, :] = 0
+    return im

@@ -23,8 +23,9 @@ from PIL import ExifTags, Image, ImageOps
 from torch.utils.data import DataLoader, Dataset, dataloader, distributed
 from tqdm import tqdm
 
-from utils.augmentations import (Albumentations, augment_hsv, classify_albumentations, classify_transforms, copy_paste,
-                                 letterbox, mixup, random_perspective)
+from utils.augmentations import (Albumentations, augment_hsv, classify_albumentations,
+                                 classify_transforms, copy_paste,
+                                 letterbox, mixup, random_perspective, fixed_cutout)
 from utils.general import (DATASETS_DIR, LOGGER, NUM_THREADS, TQDM_BAR_FORMAT, check_dataset, check_requirements,
                            check_yaml, clean_str, cv2, is_colab, is_kaggle, segments2boxes, unzip_file, xyn2xy,
                            xywh2xyxy, xywhn2xyxy, xyxy2xywhn)
@@ -33,7 +34,7 @@ from utils.torch_utils import torch_distributed_zero_first
 # Parameters
 HELP_URL = 'See https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data'
 IMG_FORMATS = 'bmp', 'dng', 'jpeg', 'jpg', 'mpo', 'png', 'tif', 'tiff', 'webp', 'pfm'  # include image suffixes
-VID_FORMATS = 'asf', 'avi', 'gif', 'm4v', 'mkv', 'mov', 'mp4', 'mpeg', 'mpg', 'ts', 'wmv'  # include video suffixes
+VID_FORMATS = 'asf', 'avi', 'gif', 'm4v', 'mkv', 'mov', 'mp4', 'mpeg', 'mpg', 'ts', 'wmv', 'webm'  # include video suffixes
 LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
 RANK = int(os.getenv('RANK', -1))
 PIN_MEMORY = str(os.getenv('PIN_MEMORY', True)).lower() == 'true'  # global pin_memory for dataloaders
@@ -455,7 +456,7 @@ class LoadImagesAndLabels(Dataset):
         self.mosaic_border = [-img_size // 2, -img_size // 2]
         self.stride = stride
         self.path = path
-        self.albumentations = Albumentations(size=img_size) if augment else None
+        self.albumentations = Albumentations(pipeline_name=hyp.get("albumentations_pipeline")) if augment else None
 
         try:
             f = []  # image files
@@ -663,6 +664,8 @@ class LoadImagesAndLabels(Dataset):
         else:
             # Load image
             img, (h0, w0), (h, w) = self.load_image(index)
+            if hyp is not None:
+                img = fixed_cutout(im=img, prob=hyp.get("fixed_cutout"), ratio=0.5)
 
             # Letterbox
             shape = self.batch_shapes[self.batch[index]] if self.rect else self.img_size  # final letterboxed shape
@@ -753,6 +756,8 @@ class LoadImagesAndLabels(Dataset):
         for i, index in enumerate(indices):
             # Load image
             img, _, (h, w) = self.load_image(index)
+            if self.hyp is not None:
+                img = fixed_cutout(im=img, prob=self.hyp.get("fixed_cutout"), ratio=0.5)
 
             # place img in img4
             if i == 0:  # top left
