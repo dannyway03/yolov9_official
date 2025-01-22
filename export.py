@@ -548,6 +548,7 @@ def run(
         optimize=False,  # TorchScript: optimize for mobile
         int8=False,  # CoreML/TF INT8 quantization
         dynamic=False,  # ONNX/TF/TensorRT: dynamic axes
+        transpose_output=False,  # transpose output shape
         simplify=False,  # ONNX: simplify model
         opset=12,  # ONNX: opset version
         verbose=False,  # TensorRT: verbose log
@@ -590,7 +591,8 @@ def run(
         if isinstance(m, (Detect, DDetect, DualDetect, DualDDetect)):
             m.inplace = inplace
             m.dynamic = dynamic
-            m.export = True
+            m.export = 2 if transpose_output else 1
+
 
     for _ in range(2):
         y = model(im)  # dry runs
@@ -680,7 +682,7 @@ def run(
     return f  # return list of exported files/dirs
 
 
-def parse_opt(weights_path: str):
+def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', type=str, default=ROOT / 'data/coco.yaml', help='dataset.yaml path')
     parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'weights/yolov9-t-converted.pt', help='model.pt path(s)')
@@ -688,11 +690,12 @@ def parse_opt(weights_path: str):
     parser.add_argument('--batch-size', type=int, default=1, help='batch size')
     parser.add_argument('--device', default='cpu', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--half', action='store_true', help='FP16 half-precision export')
-    parser.add_argument('--inplace', action='store_true', help='set YOLO Detect() inplace=True')
+    parser.add_argument('--inplace', action='store_false', help='set YOLO Detect() inplace=True')
     parser.add_argument('--keras', action='store_true', help='TF: use Keras')
     parser.add_argument('--optimize', action='store_true', help='TorchScript: optimize for mobile')
     parser.add_argument('--int8', action='store_true', help='CoreML/TF INT8 quantization')
     parser.add_argument('--dynamic', action='store_true', help='ONNX/TF/TensorRT: dynamic axes')
+    parser.add_argument('--transpose-output', action='store_false', help='Transpose output to match standard yolo')
     parser.add_argument('--simplify', action='store_false', help='ONNX: simplify model')
     parser.add_argument('--opset', type=int, default=13, help='ONNX: opset version')
     parser.add_argument('--verbose', action='store_true', help='TensorRT: verbose log')

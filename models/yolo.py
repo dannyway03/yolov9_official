@@ -29,7 +29,7 @@ except ImportError:
 class Detect(nn.Module):
     # YOLO Detect head for detection models
     dynamic = False  # force grid reconstruction
-    export = False  # export mode
+    export = 0  # export mode
     shape = None
     anchors = torch.empty(0)  # init
     strides = torch.empty(0)  # init
@@ -63,7 +63,7 @@ class Detect(nn.Module):
         box, cls = torch.cat([xi.view(shape[0], self.no, -1) for xi in x], 2).split((self.reg_max * 4, self.nc), 1)
         dbox = dist2bbox(self.dfl(box), self.anchors.unsqueeze(0), xywh=True, dim=1) * self.strides
         y = torch.cat((dbox, cls.sigmoid()), 1)
-        return y if self.export else (y, x)
+        return y if self.export == 1 else torch.transpose(y, 1, 2) if self.export == 2 else (y, x)
 
     def bias_init(self):
         # Initialize Detect() biases, WARNING: requires stride availability
@@ -78,7 +78,7 @@ class Detect(nn.Module):
 class DDetect(nn.Module):
     # YOLO Detect head for detection models
     dynamic = False  # force grid reconstruction
-    export = False  # export mode
+    export = 0  # export mode
     shape = None
     anchors = torch.empty(0)  # init
     strides = torch.empty(0)  # init
@@ -112,7 +112,7 @@ class DDetect(nn.Module):
         box, cls = torch.cat([xi.view(shape[0], self.no, -1) for xi in x], 2).split((self.reg_max * 4, self.nc), 1)
         dbox = dist2bbox(self.dfl(box), self.anchors.unsqueeze(0), xywh=True, dim=1) * self.strides
         y = torch.cat((dbox, cls.sigmoid()), 1)
-        return y if self.export else (y, x)
+        return y if self.export==1 else torch.transpose(y, 1,2) if self.export==2 else (y, x)
 
     def bias_init(self):
         # Initialize Detect() biases, WARNING: requires stride availability
@@ -127,7 +127,7 @@ class DDetect(nn.Module):
 class DualDetect(nn.Module):
     # YOLO Detect head for detection models
     dynamic = False  # force grid reconstruction
-    export = False  # export mode
+    export = 0  # export mode
     shape = None
     anchors = torch.empty(0)  # init
     strides = torch.empty(0)  # init
